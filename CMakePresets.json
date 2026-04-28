@@ -1,0 +1,29 @@
+{
+	"version": 4,
+	"configurePresets": [
+		{
+			"name": "win-debug",
+			"cacheVariables": {
+				"DEBUG": "ON"
+			},
+			"binaryDir": "${sourceDir}/build"
+		},
+		{
+			"name": "win",
+			"binaryDir": "${sourceDir}/build"
+		},
+		{
+			"name": "cross-win-debug",
+			"cacheVariables": {
+				"DEBUG": "ON"
+			},
+			"toolchainFile": "cmake/mingw64.cmake",
+			"binaryDir": "${sourceDir}/build"
+		},
+		{
+			"name": "cross-win",
+			"toolchainFile": "cmake/mingw64.cmake",
+			"binaryDir": "${sourceDir}/build"
+		}
+	]
+}
