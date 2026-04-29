@@ -15,11 +15,17 @@ if (WIN32)
 	target_sources(cava
 		PRIVATE
 			../src/windows/window.c
+			../src/windows/direct2d.c
 		PUBLIC 
 			FILE_SET HEADERS
 			FILES
 				windows/window.h
+				windows/direct2d.h
 	)	
+	target_link_libraries(cava
+		PUBLIC
+			d2d1
+	)
 endif()
 
 if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")

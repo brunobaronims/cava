@@ -1,5 +1,7 @@
 #include "windows/window.h"
+#include "windows/direct2d.h"
 #include <windows.h>
+#include <winscard.h>
 
 static LRESULT CALLBACK window_proc(
     HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
@@ -19,6 +21,15 @@ int window_init(Window *window)
 {
 	if (!window)
 		return ERR_NULL_WINDOW;
+
+	if (!SUCCEEDED(CoInitialize(NULL))) {
+		return ERR_COULD_NOT_INITIALIZE_COM;
+	}
+
+	HRESULT hr = create_device_independent_resources(window->factory);
+	if (!SUCCEEDED(hr)) {
+		return ERR_COULD_NOT_CREATE_FACTORY;
+	}
 
 	window->hwnd = NULL;
 	window->hinstance = NULL;
@@ -51,6 +62,10 @@ int window_init(Window *window)
 
 void window_deinit(Window *window)
 {
+	direct2d_deinit(window);	
+
+	CoUninitialize();
+
 	if (!window)
 		return;
 
