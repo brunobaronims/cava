@@ -1,12 +1,11 @@
 #include "cava.h"
-#include <stdio.h>
 
 int main(void)
 {
-	Cava cav;
+	Cava cav = {0};
 	int result = cava_init(&cav);
-
-	printf("result: %d\n", result);
+	if (result)
+		return result;
 
 	cava_run();
 

@@ -22,20 +22,23 @@ int window_init(Window *window)
 	if (!window)
 		return ERR_NULL_WINDOW;
 
+	window->hwnd = NULL;
+	window->hinstance = NULL;
+	window->render_target = NULL;
+	window->brush = NULL;
+	window->factory = NULL;
+
 	if (!SUCCEEDED(CoInitialize(NULL))) {
 		return ERR_COULD_NOT_INITIALIZE_COM;
 	}
 
-	HRESULT hr = create_device_independent_resources(window->factory);
+	HRESULT hr = create_device_independent_resources(&window->factory);
 	if (!SUCCEEDED(hr)) {
 		return ERR_COULD_NOT_CREATE_FACTORY;
 	}
 
-	window->hwnd = NULL;
-	window->hinstance = NULL;
-
 	if (!SUCCEEDED(SetProcessDpiAwarenessContext(
-		DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+			DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
 	    )))
 		return ERR_COULD_NOT_SET_AWARENESS;
 
@@ -62,15 +65,12 @@ int window_init(Window *window)
 
 void window_deinit(Window *window)
 {
-	direct2d_deinit(window);	
-
-	CoUninitialize();
-
 	if (!window)
 		return;
 
-	if (window->hwnd)
-		DestroyWindow(window->hwnd);
+	direct2d_deinit(window);
+
+	CoUninitialize();
 }
 
 static HWND new_hwnd(HINSTANCE hinstance, Window *window)
