@@ -8,6 +8,7 @@ static LRESULT CALLBACK window_proc(
 );
 static HWND new_hwnd(HINSTANCE hinstance, Window *window);
 static HRESULT on_render(Window *window);
+static void on_resize(Window *window, UINT height, UINT width);
 
 void window_run()
 {
@@ -142,9 +143,13 @@ static LRESULT CALLBACK window_proc(
 			was_handled = 1;
 			return 0;
 
-		case WM_SIZE:
+		case WM_SIZE: {
+			UINT width = LOWORD(lparam);
+			UINT height = HIWORD(lparam);
+			on_resize(window, height, width);
 			was_handled = 1;
 			return 0;
+		}
 
 		case WM_DISPLAYCHANGE:
 			InvalidateRect(hwnd, NULL, 0);
@@ -162,6 +167,18 @@ static LRESULT CALLBACK window_proc(
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 
 	return 0;
+}
+
+static void on_resize(Window *window, UINT height, UINT width)
+{
+	if (!window->render_target)
+		return;
+
+	D2D1_SIZE_U size = {
+	    .height = height,
+	    .width = width,
+	};
+	ID2D1HwndRenderTarget_Resize(window->render_target, &size);
 }
 
 static HRESULT on_render(Window *window)
@@ -188,8 +205,8 @@ static HRESULT on_render(Window *window)
 	ID2D1HwndRenderTarget_BeginDraw(window->render_target);
 
 	D2D1_MATRIX_3X2_F transform = {
-		._11 = 1.0f,
-		._22 = 1.0f,
+	    ._11 = 1.0f,
+	    ._22 = 1.0f,
 	};
 	ID2D1HwndRenderTarget_SetTransform(window->render_target, &transform);
 
@@ -202,10 +219,10 @@ static HRESULT on_render(Window *window)
 	ID2D1HwndRenderTarget_Clear(window->render_target, &white);
 
 	D2D1_RECT_F rectangle = {
-		.top = size.height / 2 - 50.0f,
-		.bottom = size.height / 2 + 50.0f,
-		.left = size.width / 2 - 50.0f,
-		.right = size.width / 2 + 50.0f,
+	    .top = size.height / 2 - 50.0f,
+	    .bottom = size.height / 2 + 50.0f,
+	    .left = size.width / 2 - 50.0f,
+	    .right = size.width / 2 + 50.0f,
 	};
 
 	ID2D1HwndRenderTarget_FillRectangle(
