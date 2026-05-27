@@ -9,11 +9,12 @@ typedef struct Window {
 	ID2D1Factory *factory;
 	ID2D1HwndRenderTarget *render_target;
 	ID2D1SolidColorBrush *brush;
+	UINT dpi_scale;
 } Window;
 
 int window_init(Window *window);
 void window_deinit(Window *window);
-void window_run();
+void window_run(void);
 
 enum {
 	ERR_COULD_NOT_SET_AWARENESS = 1,

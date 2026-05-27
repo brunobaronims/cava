@@ -2,6 +2,8 @@
 #include "windows/direct2d.h"
 #include <d2d1.h>
 #include <windows.h>
+#include <windowsx.h>
+#include <stdio.h>
 
 static LRESULT CALLBACK window_proc(
     HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
@@ -10,7 +12,7 @@ static HWND new_hwnd(HINSTANCE hinstance, Window *window);
 static HRESULT on_render(Window *window);
 static void on_resize(Window *window, UINT height, UINT width);
 
-void window_run()
+void window_run(void)
 {
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0) > 0) {
@@ -57,6 +59,8 @@ int window_init(Window *window)
 		return ERR_COULD_NOT_CREATE_WINDOW;
 
 	window->hwnd = hwnd;
+
+	window->dpi_scale = GetDpiForWindow(window->hwnd) / 96.0f;
 
 	ShowWindow(window->hwnd, SW_SHOWMAXIMIZED);
 	UpdateWindow(window->hwnd);
@@ -150,12 +154,37 @@ static LRESULT CALLBACK window_proc(
 			was_handled = 1;
 			return 0;
 		}
-
 		case WM_DISPLAYCHANGE:
 			InvalidateRect(hwnd, NULL, 0);
 			was_handled = 1;
 			return 0;
+		case WM_DPICHANGED: {
+			window->dpi_scale = LOWORD(wparam) / 96.0f;
 
+			RECT *rect = (RECT *)lparam;
+			SetWindowPos(
+			    hwnd,
+			    NULL,
+			    rect->left,
+			    rect->top,
+			    rect->right - rect->left,
+			    rect->bottom - rect->top,
+			    SWP_NOZORDER | SWP_NOACTIVATE
+			);
+
+			InvalidateRect(hwnd, NULL, FALSE);
+			was_handled = 1;
+			return 0;
+		}
+		case WM_MOUSEMOVE: {
+			int x = GET_X_LPARAM(lparam) / window->dpi_scale;
+			int y = GET_Y_LPARAM(lparam) / window->dpi_scale;
+
+			printf("x: %i\n", x);
+			printf("y: %i\n", y);
+			was_handled = 1;
+			return 0;
+		}
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			was_handled = 1;
@@ -193,13 +222,9 @@ static HRESULT on_render(Window *window)
 	if (!GetClientRect(window->hwnd, &rc))
 		return HRESULT_FROM_WIN32(GetLastError());
 
-	FLOAT dpi_x = 96.0f;
-	FLOAT dpi_y = 96.0f;
-	ID2D1HwndRenderTarget_GetDpi(window->render_target, &dpi_x, &dpi_y);
-
 	D2D1_SIZE_F size = {
-	    .width = (FLOAT)(rc.right - rc.left) * 96.0f / dpi_x,
-	    .height = (FLOAT)(rc.bottom - rc.top) * 96.0f / dpi_y,
+	    .width = (FLOAT)(rc.right - rc.left) / window->dpi_scale,
+	    .height = (FLOAT)(rc.bottom - rc.top) / window->dpi_scale,
 	};
 
 	ID2D1HwndRenderTarget_BeginDraw(window->render_target);
@@ -224,6 +249,8 @@ static HRESULT on_render(Window *window)
 	    .left = size.width / 2 - 50.0f,
 	    .right = size.width / 2 + 50.0f,
 	};
+	printf("left: %f\n", rectangle.left);
+	printf("top: %f\n", rectangle.top);
 
 	ID2D1HwndRenderTarget_FillRectangle(
 	    window->render_target,

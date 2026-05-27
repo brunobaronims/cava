@@ -10,4 +10,4 @@ typedef struct Cava {
 
 int cava_init(Cava *cava);
 void cava_deinit(Cava *cava);
-void cava_run();
+void cava_run(void);

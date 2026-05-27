@@ -19,6 +19,6 @@ void cava_deinit(Cava *cava)
 	window_deinit(&cava->window);
 }
 
-void cava_run() {
+void cava_run(void) {
 	window_run();
 }
