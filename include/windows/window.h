@@ -1,20 +1,21 @@
 #pragma once
 
-#include <windows.h>
-#include <d2d1.h>
+#define WIN32_LEAN_AND_MEAN
 
-typedef struct Window {
+#include <windowsx.h>
+#include "graphics.h"
+
+typedef struct {
+	CavaGraphics graphics;
 	HWND hwnd;
 	HINSTANCE hinstance;
-	ID2D1Factory *factory;
-	ID2D1HwndRenderTarget *render_target;
-	ID2D1SolidColorBrush *brush;
 	UINT dpi_scale;
-} Window;
+} CavaWindow;
 
-int window_init(Window *window);
-void window_deinit(Window *window);
-void window_run(void);
+int cava_window_init(CavaWindow *window);
+void cava_window_deinit(CavaWindow *window);
+
+void cava_run(CavaWindow *window);
 
 enum {
 	ERR_COULD_NOT_SET_AWARENESS = 1,

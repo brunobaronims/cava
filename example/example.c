@@ -7,7 +7,7 @@ int main(void)
 	if (result)
 		return result;
 
-	cava_run();
+	cava_run(&cav.window);
 
 	cava_deinit(&cav);
 

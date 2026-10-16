@@ -1,19 +1,16 @@
 #include "windows/window.h"
-#include "windows/direct2d.h"
-#include <d2d1.h>
-#include <windows.h>
-#include <windowsx.h>
 #include <stdio.h>
 
 static LRESULT CALLBACK window_proc(
     HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 );
-static HWND new_hwnd(HINSTANCE hinstance, Window *window);
-static HRESULT on_render(Window *window);
-static void on_resize(Window *window, UINT height, UINT width);
+static HWND new_hwnd(HINSTANCE hinstance, CavaWindow *window);
 
-void window_run(void)
+void cava_run(CavaWindow *window)
 {
+	ShowWindow(window->hwnd, SW_SHOWMAXIMIZED);
+	UpdateWindow(window->hwnd);
+
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&msg);
@@ -21,24 +18,10 @@ void window_run(void)
 	}
 }
 
-int window_init(Window *window)
+int cava_window_init(CavaWindow *window)
 {
 	if (!window)
 		return ERR_NULL_WINDOW;
-
-	window->hwnd = NULL;
-	window->hinstance = NULL;
-	window->render_target = NULL;
-	window->brush = NULL;
-	window->factory = NULL;
-
-	if (!SUCCEEDED(CoInitialize(NULL))) {
-		return ERR_COULD_NOT_INITIALIZE_COM;
-	}
-
-	HRESULT hr = create_device_independent_resources(&window->factory);
-	if (!SUCCEEDED(hr))
-		return ERR_COULD_NOT_CREATE_FACTORY;
 
 	if (!SUCCEEDED(SetProcessDpiAwarenessContext(
 		DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
@@ -59,26 +42,30 @@ int window_init(Window *window)
 		return ERR_COULD_NOT_CREATE_WINDOW;
 
 	window->hwnd = hwnd;
-
 	window->dpi_scale = GetDpiForWindow(window->hwnd) / 96.0f;
+	window->graphics = (CavaGraphics){0};
 
-	ShowWindow(window->hwnd, SW_SHOWMAXIMIZED);
-	UpdateWindow(window->hwnd);
+	if (!SUCCEEDED(CoInitialize(NULL))) {
+		return ERR_COULD_NOT_INITIALIZE_COM;
+	}
+
+	if (cava_graphics_init(&window->graphics))
+		return ERR_COULD_NOT_CREATE_FACTORY;
 
 	return 0;
 }
 
-void window_deinit(Window *window)
+void cava_window_deinit(CavaWindow *window)
 {
 	if (!window)
 		return;
 
-	direct2d_deinit(window);
+	cava_graphics_deinit(&window->graphics);
 
 	CoUninitialize();
 }
 
-static HWND new_hwnd(HINSTANCE hinstance, Window *window)
+static HWND new_hwnd(HINSTANCE hinstance, CavaWindow *window)
 {
 	const char *class_name = "ezel";
 	const char *window_title = "ezel";
@@ -120,7 +107,7 @@ static LRESULT CALLBACK window_proc(
 {
 	if (msg == WM_CREATE) {
 		CREATESTRUCT *pcs = (CREATESTRUCT *)lparam;
-		Window *window = (Window *)pcs->lpCreateParams;
+		CavaWindow *window = (CavaWindow *)pcs->lpCreateParams;
 		LONG_PTR result;
 
 		SetLastError(0);
@@ -136,13 +123,13 @@ static LRESULT CALLBACK window_proc(
 	}
 
 	LONG_PTR p = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-	Window *window = p ? (Window *)p : NULL;
+	CavaWindow *window = p ? (CavaWindow *)p : NULL;
 	int was_handled = 0;
 
 	if (window) {
 		switch (msg) {
 		case WM_PAINT:
-			on_render(window);
+			cava_graphics_on_render(&window->graphics, window->hwnd, window->dpi_scale);
 			ValidateRect(hwnd, NULL);
 			was_handled = 1;
 			return 0;
@@ -150,7 +137,11 @@ static LRESULT CALLBACK window_proc(
 		case WM_SIZE: {
 			UINT width = LOWORD(lparam);
 			UINT height = HIWORD(lparam);
-			on_resize(window, height, width);
+			cava_graphics_on_resize(
+			    &window->graphics,
+			    height,
+			    width
+			);
 			was_handled = 1;
 			return 0;
 		}
@@ -196,73 +187,4 @@ static LRESULT CALLBACK window_proc(
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 
 	return 0;
-}
-
-static void on_resize(Window *window, UINT height, UINT width)
-{
-	if (!window->render_target)
-		return;
-
-	D2D1_SIZE_U size = {
-	    .height = height,
-	    .width = width,
-	};
-	ID2D1HwndRenderTarget_Resize(window->render_target, &size);
-}
-
-static HRESULT on_render(Window *window)
-{
-	HRESULT hr = S_OK;
-
-	hr = create_device_resources(window);
-	if (!SUCCEEDED(hr))
-		return hr;
-
-	RECT rc;
-	if (!GetClientRect(window->hwnd, &rc))
-		return HRESULT_FROM_WIN32(GetLastError());
-
-	D2D1_SIZE_F size = {
-	    .width = (FLOAT)(rc.right - rc.left) / window->dpi_scale,
-	    .height = (FLOAT)(rc.bottom - rc.top) / window->dpi_scale,
-	};
-
-	ID2D1HwndRenderTarget_BeginDraw(window->render_target);
-
-	D2D1_MATRIX_3X2_F transform = {
-	    ._11 = 1.0f,
-	    ._22 = 1.0f,
-	};
-	ID2D1HwndRenderTarget_SetTransform(window->render_target, &transform);
-
-	D2D1_COLOR_F white = {
-	    .r = 1.0f,
-	    .b = 1.0f,
-	    .g = 1.0f,
-	    .a = 1.0f,
-	};
-	ID2D1HwndRenderTarget_Clear(window->render_target, &white);
-
-	D2D1_RECT_F rectangle = {
-	    .top = size.height / 2 - 50.0f,
-	    .bottom = size.height / 2 + 50.0f,
-	    .left = size.width / 2 - 50.0f,
-	    .right = size.width / 2 + 50.0f,
-	};
-	printf("left: %f\n", rectangle.left);
-	printf("top: %f\n", rectangle.top);
-
-	ID2D1HwndRenderTarget_FillRectangle(
-	    window->render_target,
-	    &rectangle,
-	    (ID2D1Brush *)window->brush
-	);
-
-	hr = ID2D1HwndRenderTarget_EndDraw(window->render_target, NULL, NULL);
-	if (hr == D2DERR_RECREATE_TARGET) {
-		hr = S_OK;
-		discard_device_resources(window);
-	}
-
-	return hr;
 }

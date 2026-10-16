@@ -20,8 +20,8 @@ linker_flags=''
 if [[ -v cross ]]; then
 	compiler='x86_64-w64-mingw32-gcc'
 	archiver='x86_64-w64-mingw32-ar'
-	platform_src+='src/windows/direct2d.c src/windows/window.c'
-	platform_obj+='direct2d.o'
+	platform_src+='src/windows/graphics_d2d.c src/windows/graphics_d3d11.c src/windows/graphics.c src/windows/window.c'
+	platform_obj+='graphics_d2d.o graphics_d3d11.o graphics.o'
 	linker_flags+='-ld2d1 -lole32 -luuid'
 fi
 
