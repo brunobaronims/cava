@@ -1,6 +1,8 @@
 #pragma once
 #if defined(_WIN32)
 #include "windows/window.h"
+#else
+#error "os not supported"
 #endif
 
 typedef struct {

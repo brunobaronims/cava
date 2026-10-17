@@ -1,10 +1,10 @@
 #include "windows/window.h"
-#include <stdio.h>
 
 static LRESULT CALLBACK window_proc(
     HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 );
 static HWND new_hwnd(HINSTANCE hinstance, CavaWindow *window);
+static int hit_test(CavaWindow *window, int x, int y);
 
 void cava_run(CavaWindow *window)
 {
@@ -129,7 +129,11 @@ static LRESULT CALLBACK window_proc(
 	if (window) {
 		switch (msg) {
 		case WM_PAINT:
-			cava_graphics_on_render(&window->graphics, window->hwnd, window->dpi_scale);
+			cava_graphics_on_render(
+			    &window->graphics,
+			    window->hwnd,
+			    window->dpi_scale
+			);
 			ValidateRect(hwnd, NULL);
 			was_handled = 1;
 			return 0;
@@ -171,8 +175,7 @@ static LRESULT CALLBACK window_proc(
 			int x = GET_X_LPARAM(lparam) / window->dpi_scale;
 			int y = GET_Y_LPARAM(lparam) / window->dpi_scale;
 
-			printf("x: %i\n", x);
-			printf("y: %i\n", y);
+			hit_test(window, x, y);
 			was_handled = 1;
 			return 0;
 		}
@@ -187,4 +190,11 @@ static LRESULT CALLBACK window_proc(
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 
 	return 0;
+}
+
+static int hit_test(CavaWindow *window, int x, int y) { 
+	(void)window;
+	(void)x;
+	(void)y;
+	return 1;	
 }

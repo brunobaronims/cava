@@ -1,5 +1,4 @@
 #include "windows/graphics_d2d.h"
-#include <stdio.h>
 
 static void release(void **obj);
 
@@ -132,8 +131,6 @@ HRESULT cava_d2d_on_render(CavaGraphicsD2D *graphics_d2d, HWND hwnd, UINT dpi_sc
 	    .left = size.width / 2 - 50.0f,
 	    .right = size.width / 2 + 50.0f,
 	};
-	printf("left: %f\n", rectangle.left);
-	printf("top: %f\n", rectangle.top);
 
 	ID2D1HwndRenderTarget_FillRectangle(
 	    graphics_d2d->render_target,
